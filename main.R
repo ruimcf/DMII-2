@@ -4,7 +4,6 @@ library(stringr)
 ## GET list of --MOVIE ID'S-- from a query string
 searchTitle <- function(query, max=200){
   query <- URLencode(query)
-  print(query)
   resultPage <- read_html(str_interp("http://www.imdb.com/find?q=${query}&s=tt"))
   filmList <- html_nodes(resultPage, ".result_text")
   listCount <- length(filmList)
