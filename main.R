@@ -5,7 +5,8 @@ library(stringr)
 searchTitle <- function(query, max=200){
   query <- URLencode(query)
   resultPage <- read_html(str_interp("http://www.imdb.com/find?q=${query}&s=tt"))
-  filmList <- html_nodes(resultPage, ".result_text")
+  filmList <- html_nodes(resultPage, ".findList")
+  filmList <- html_children(filmList)
   listCount <- length(filmList)
   if(!listCount){ 
     return(NULL)
@@ -15,18 +16,12 @@ searchTitle <- function(query, max=200){
   }
   movieList <- c()
   for(i in 1:listCount){
-    if(!i%%2){
-      movie <- html_nodes(resultPage, str_interp(".even:nth-child(${i}) .result_text"))
-    }else{
-      movie <- html_nodes(resultPage, str_interp(".odd:nth-child(${i}) .result_text"))
-    }
-    movie <- str_split(html_children(movie),"/")[[1]][3]
+    movieAnchor <- html_children(html_children(filmList[i])[2])[1]
+    movie <- str_split(movieAnchor,"/")[[1]][3]
     movieList <- c(movieList, movie)
   }
   return(movieList)
 }
-
-<<<<<<< HEAD
 getTitle <- function(movieID, page=NULL){
   if(is.null(page)){
     page <- read_html(str_interp("http://www.imdb.com/title/${movieID}"))
@@ -64,10 +59,6 @@ getDetails <- function(movieID){
   return(description)
 }
 
-movieList <- searchTitle("Kill Bill")
-details <- getDetails(movieList[1])
-details
-=======
 extractScore <- function(html_node) {
   scoreImg <- html_node(html_node, "h2+ img")
   if(!is.na(scoreImg)){
@@ -98,7 +89,8 @@ getReviews <- function(movie_id){
 }
 
 movieList <- searchTitle("Kill Bill")
+details <- getDetails(movieList[1])
+print(details)
 movieReviewsList <- getReviews(movieList[1])
 print(movieReviewsList$text[1])
 print(movieReviewsList$scores[1])
->>>>>>> 5e0c0cb3c3f4b5bc69de4477f44510e67a0b5da0
