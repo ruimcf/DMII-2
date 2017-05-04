@@ -22,6 +22,7 @@ searchTitle <- function(query, max=200){
   }
   return(movieList)
 }
+
 getTitle <- function(movieID, page=NULL){
   if(is.null(page)){
     page <- read_html(str_interp("http://www.imdb.com/title/${movieID}"))
@@ -63,6 +64,7 @@ extractScore <- function(html_node) {
   scoreImg <- html_node(html_node, "h2+ img")
   if(!is.na(scoreImg)){
     score <- html_attr(scoreImg, "alt")
+    score <- as.integer(str_split(score,"/")[[1]][1])
   }
   else{
     score <- NA
@@ -75,13 +77,15 @@ getReviews <- function(movie_id){
   showAllPartialUrl <- html_nodes(indexReviewsPage, "table+ table a+ a") %>% html_attr("href")
   showAllReviewsPartialUrl <-gsub("-index","", showAllPartialUrl)
   showAllReviewsUrl <- str_interp("http://www.imdb.com/title/${movie_id}/${showAllReviewsPartialUrl}")
-  
+      
   listReviewsPage <- read_html(showAllReviewsUrl) 
   reviewsNodeList <- html_nodes(listReviewsPage, "#tn15content div+ p , hr+ div")
   reviews <- list()
   for(i in seq(1, length(reviewsNodeList), 2)){
     score <- extractScore(reviewsNodeList[i])          
+    title <- html_text(html_node(reviewsNodeList[i], "h2"))
     text <- html_text(reviewsNodeList[i+1])
+    text <- paste(title, text, "\n")
     reviews$scores <- c(reviews$scores, score)
     reviews$text <- c(reviews$text, text)
   }
@@ -94,3 +98,4 @@ print(details)
 movieReviewsList <- getReviews(movieList[1])
 print(movieReviewsList$text[1])
 print(movieReviewsList$scores[1])
+
