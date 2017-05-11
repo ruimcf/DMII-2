@@ -92,10 +92,35 @@ getReviews <- function(movie_id){
   return(reviews)
 }
 
+removeNaScores <- function(X){
+  X$text <- X$text[!is.na(X$scores)]
+  X$scores <- X$scores[!is.na(X$scores)]
+  return(X)
+}
+
 movieList <- searchTitle("Kill Bill")
 details <- getDetails(movieList[1])
 print(details)
-movieReviewsList <- getReviews(movieList[1])
+# movieReviewsList <- getReviews(movieList[1])
+load("KillBillReviews.Rdata") # loads movieReviewsList
 print(movieReviewsList$text[1])
 print(movieReviewsList$scores[1])
+movieReviewsList <- removeNaScores(movieReviewsList)
+library(tm)
+library(SnowballC)
+library(wordcloud)
+reviews <- VCorpus(VectorSource(movieReviewsList$text))
+## Stripping  white space
+reviews <- tm_map(reviews, stripWhitespace)
+## Converting everything to lowercase
+reviews <- tm_map(reviews, content_transformer(tolower))
+## Removing English stopwords
+## We are not really sure that all reviews are in english
+reviews <- tm_map(reviews, removeWords, stopwords("english"))
+## Stemming the words (keeping only the "root" of each word)
+reviews <- tm_map(reviews, stemDocument)
 
+for(i in 1:10){
+  wordcloud(reviews[movieReviewsList$scores == i], colors = rainbow(20))
+  readline(prompt=str_interp("Score: ${i}\nPress [enter] to continue"))
+}
