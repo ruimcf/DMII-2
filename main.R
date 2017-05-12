@@ -112,31 +112,37 @@ library(wordcloud)
 reviews <- VCorpus(VectorSource(movieReviewsList$text))
 ## terms = 34201
 ## non sparse entries = 232338/56678125
+
 ## Stripping  white space
 reviews <- tm_map(reviews, stripWhitespace)
-## terms = 34201
-## non sparse entries = 232338/56678125
+## terms = X
+## non sparse entries = X
+
 ## Converting everything to lowercase
 reviews <- tm_map(reviews, content_transformer(tolower))
 ## terms = 34201
-## non sparse entries = 232338/56678125
+## non sparse entries =X
+
+## Remove ponctuation, symbols, and digits, everything that isn't a word
+f <- content_transformer(function(x, pattern, sub) gsub(pattern, sub, x))
+reviews <- tm_map(reviews, f, "\\W|\\d", " ")
+## Fix double space caused by previous transformation, not sure if needed
+reviews <- tm_map(reviews, f, "  ", " ")
+
 ## Removing English stopwords
 ## We are not really sure that all reviews are in english
 reviews <- tm_map(reviews, removeWords, stopwords("english"))
-## terms = 31273
-## non sparse entries: 180818/51857454
+## terms =X
+## non sparse entries:X
+
 ## Stemming the words (keeping only the "root" of each word)
 reviews <- tm_map(reviews, stemDocument)
-## terms = 25745
-## non sparse entries: 173925/42665755
+## terms =X
+## non sparse entries:X
 
-##### esta parte ainda não está a funcionar
-## Remove ponctuation, symbols, and digits
-f <- content_transformer(function(x, pattern) gsub(pattern, "", x))
-reviews <- tm_map(reviews, f, "[[:graph:]]")
-#####
 
 dtm <- DocumentTermMatrix(reviews)
+inspect(dtm)
 dtm2 <- weightTfIdf(dtm)
 
 
