@@ -107,11 +107,12 @@ removeNaScores <- function(X){
 
 getTitlesByGenre <- function(genre, count = 50){
   url <- str_interp("http://www.imdb.com/search/title?genres=${genre}&sort=num_votes")
+  print(url)
   page <- read_html(url)
   table <- html_nodes(page, ".lister-list")
   filmList <- html_children(table)
   movieList <- c()
-  for(i in i:count){
+  for(i in 1:count){
     m <- regexpr("data-tconst=\"\\w+\"", filmList[i])
     movieId <- str_split(regmatches(filmList[i], m)[1], "\"")[[1]][2]
     movieList <- c(movieList, movieId)
@@ -168,3 +169,6 @@ for(i in 1:10){
   wordcloud(reviews[movieReviewsList$scores == i], colors = rainbow(20))
   readline(prompt=str_interp("Score: ${i}\nPress [enter] to continue"))
 }
+
+
+genreList <- c("")
