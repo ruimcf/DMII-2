@@ -125,7 +125,7 @@ reviews <- tm_map(reviews, content_transformer(tolower))
 
 ## Remove ponctuation, symbols, and digits, everything that isn't a word
 f <- content_transformer(function(x, pattern, sub) gsub(pattern, sub, x))
-reviews <- tm_map(reviews, f, "\\W|\\d", " ")
+reviews <- tm_map(reviews, f, "\\W|\\d|_", " ")
 ## Fix double space caused by previous transformation, not sure if needed
 reviews <- tm_map(reviews, f, "  ", " ")
 
@@ -145,6 +145,21 @@ dtm <- DocumentTermMatrix(reviews)
 inspect(dtm)
 dtm2 <- weightTfIdf(dtm)
 
+finalDataSet <- cbind(data.frame(as.matrix(dtm2), Score=movieReviewsList$scores))
+library(e1071) 
+#randomRows <- sample(1: nrow(finalDataSet), as.integer(0.7*nrow(finalDataSet)))
+#train <- finalDataSet[randomRows, ]
+#test <- finalDataSet[-randomRows, ]
+#m <- svm(Score ~ ., train) 
+#preds <- predict(m, test) 
+
+library(performanceEstimation)
+exp <- performanceEstimation(
+  PredTask(Score ~ ., finalDataSet),
+  c(workflowVariants(learner="svm", learner.pars=list(cost=c(1,3,10), kernel=c("linear", "radial")))),
+  EstimationTask(metrics="mse")
+  )
+## Best result: cost=10, kernel=linear. MSE = 5.01
 
 for(i in 1:10){
   wordcloud(reviews[movieReviewsList$scores == i], colors = rainbow(20))
