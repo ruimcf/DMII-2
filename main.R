@@ -1,5 +1,8 @@
 library(rvest)
 library(stringr)
+library(tm)
+library(SnowballC)
+library(wordcloud)
 
 ## GET list of --MOVIE ID'S-- from a query string
 searchTitle <- function(query, max=200){
@@ -72,12 +75,16 @@ extractScore <- function(html_node) {
   return(score)
 }
 
-getReviews <- function(movie_id){
+getReviews <- function(movie_id, count = 0){
   indexReviewsPage <- read_html(str_interp("http://www.imdb.com/title/${movie_id}/reviews-index?"))
   showAllPartialUrl <- html_nodes(indexReviewsPage, "table+ table a+ a") %>% html_attr("href")
+  if(count > 0){
+    showAllPartialUrl <- gsub("count=(\\d)+", str_interp("count=${count}"), showAllPartialUrl)
+  }
   showAllReviewsPartialUrl <-gsub("-index","", showAllPartialUrl)
   showAllReviewsUrl <- str_interp("http://www.imdb.com/title/${movie_id}/${showAllReviewsPartialUrl}")
       
+  
   listReviewsPage <- read_html(showAllReviewsUrl) 
   reviewsNodeList <- html_nodes(listReviewsPage, "#tn15content div+ p , hr+ div")
   reviews <- list()
@@ -98,6 +105,21 @@ removeNaScores <- function(X){
   return(X)
 }
 
+getTitlesByGenre <- function(genre, count = 50){
+  url <- str_interp("http://www.imdb.com/search/title?genres=${genre}&sort=num_votes")
+  print(url)
+  page <- read_html(url)
+  table <- html_nodes(page, ".lister-list")
+  filmList <- html_children(table)
+  movieList <- c()
+  for(i in 1:count){
+    m <- regexpr("data-tconst=\"\\w+\"", filmList[i])
+    movieId <- str_split(regmatches(filmList[i], m)[1], "\"")[[1]][2]
+    movieList <- c(movieList, movieId)
+  }
+  return(movieList)
+}
+
 movieList <- searchTitle("Kill Bill")
 details <- getDetails(movieList[1])
 print(details)
@@ -106,9 +128,6 @@ load("KillBillReviews.Rdata") # loads movieReviewsList
 print(movieReviewsList$text[1])
 print(movieReviewsList$scores[1])
 movieReviewsList <- removeNaScores(movieReviewsList)
-library(tm)
-library(SnowballC)
-library(wordcloud)
 reviews <- VCorpus(VectorSource(movieReviewsList$text))
 ## terms = 34201
 ## non sparse entries = 232338/56678125
@@ -165,3 +184,6 @@ for(i in 1:10){
   wordcloud(reviews[movieReviewsList$scores == i], colors = rainbow(20))
   readline(prompt=str_interp("Score: ${i}\nPress [enter] to continue"))
 }
+
+
+genreList <- c("")
