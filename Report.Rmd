@@ -171,6 +171,31 @@ removeNaScores <- function(X){
 }
 ```
 
+
+### Search Movies by genre
+Another feature developed returns a list of title ID's of the most voted movies for a certain genre, like:  
+*  Drama  
+*  Action  
+*  Sci-fi  
+* etc...  
+
+```{r}
+getTitlesByGenre <- function(genre, count = 50){
+  url <- str_interp("http://www.imdb.com/search/title?genres=${genre}&sort=num_votes")
+  print(url)
+  page <- read_html(url)
+  table <- html_nodes(page, ".lister-list")
+  filmList <- html_children(table)
+  movieList <- c()
+  for(i in 1:count){
+    m <- regexpr("data-tconst=\"\\w+\"", filmList[i])
+    movieId <- str_split(regmatches(filmList[i], m)[1], "\"")[[1]][2]
+    movieList <- c(movieList, movieId)
+  }
+  return(movieList)
+}
+```
+
 &nbsp;    
 &nbsp;    
 
