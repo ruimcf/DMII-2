@@ -213,7 +213,64 @@ So we created a function to remove those.
     
 Applying this transformation before the removal of the stopwords, we have a document term matrix with 9k terms.
 
+### Removing Common Words
+
+After analysing the data that we had, we decided to make tests, word clouds, and prediction models. 
+However, they were not providing any relevant results because to the same score, the most used words are still the same (even after removing the stopwords). 
+The most used word are terms like film or movie and terms related to the movie (like the movie name and the movie director's name).  
+
+To have better results we decided to removed the most used words that appear in all scores. 
+So, for each score, we get a list of terms which have a frequency higher than X. Then match the lists so we get only the terms that appear in all lists.
+
+```{r}
+mostCommon <- function(reviews, count = 0.2){
+  corpus <- transformCorpus(VCorpus(VectorSource(movieReviewsList$text[reviews$scores == 1])))
+  dtm <- DocumentTermMatrix(corpus)
+  dtm <- weightTfIdf(dtm)
+  inspect(dtm)
+  common <- findFreqTerms(dtm, count)
+  for(i in 2:10){
+    corpus <-transformCorpus(VCorpus(VectorSource(movieReviewsList$text[reviews$scores == i])))
+    dtm <- DocumentTermMatrix(corpus)
+    dtm <- weightTfIdf(dtm)
+    mostFrequent <- findFreqTerms(dtm, count)
+    toRemove <- c()
+    flag <- FALSE
+    for(j in 1:length(common)){
+      if(!(common[j] %in% mostFrequent)){
+        toRemove <- c(toRemove, j)
+        flag = TRUE
+      }
+    }
+    if(flag){
+      common <- common[-toRemove]
+    }
+  }
+  return(common)
+}
+```
+
+
 ```{r, echo=FALSE}
+
+transformCorpus <- function(reviews){
+  ## Stripping  white space
+  reviews <- tm_map(reviews, stripWhitespace)
+  ## Converting everything to lowercase
+  reviews <- tm_map(reviews, content_transformer(tolower))
+  ## Remove ponctuation, symbols, and digits, everything that isn't a word
+  f <- content_transformer(function(x, pattern, sub) gsub(pattern, sub, x))
+  reviews <- tm_map(reviews, f, "\\W|\\d|_", " ")
+  ## Fix double space caused by previous transformation, not sure if needed
+  reviews <- tm_map(reviews, f, "  ", " ")
+  ## Removing English stopwords
+  ## We are not really sure that all reviews are in english
+  reviews <- tm_map(reviews, removeWords, stopwords("english"))
+  ## Stemming the words (keeping only the "root" of each word)
+  reviews <- tm_map(reviews, stemDocument)
+  return(reviews)
+}
+
 ########################## CODIGO PARA CORRER AQUI ##########
 #############################################################
 movieList <- searchTitle("Kill Bill")
@@ -222,19 +279,9 @@ details <- getDetails(movieList[1])
 load("KillBillReviews.Rdata") # loads movieReviewsList
 movieReviewsList <- removeNaScores(movieReviewsList)
 reviews <- VCorpus(VectorSource(movieReviewsList$text))
-## Stripping  white space
-reviews <- tm_map(reviews, stripWhitespace)
-## Converting everything to lowercase
-reviews <- tm_map(reviews, content_transformer(tolower))
-## Remove ponctuation, symbols, and digits, everything that isn't a word
-f <- content_transformer(function(x, pattern, sub) gsub(pattern, sub, x))
-reviews <- tm_map(reviews, f, "\\W|\\d|_", " ")
-## Fix double space caused by previous transformation, not sure if needed
-reviews <- tm_map(reviews, f, "  ", " ")
-## Removing English stopwords; We are not really sure that all reviews are in english
-reviews <- tm_map(reviews, removeWords, stopwords("english"))
-## Stemming the words (keeping only the "root" of each word)
-reviews <- tm_map(reviews, stemDocument)
+reviews <- transformCorpus(reviews)
+common <- mostCommon(movieReviewsList, count = 0.15)
+reviews <- tm_map(reviews, removeWords, common)
 dtm <- DocumentTermMatrix(reviews)
 dtm2 <- weightTfIdf(dtm)
 
@@ -249,7 +296,7 @@ dtm2 <- weightTfIdf(dtm)
 We formed a wordcloud with all the reviews for each score
 ```{r, echo=FALSE}
 for(i in 1:10){
-  wordcloud(reviews[movieReviewsList$scores == i], colors = rainbow(20))
+  wordcloud(reviews[movieReviewsList$scores == i], colors = rainbow(20), random.order = FALSE, max.words = 400, vfont=c("sans serif", "bold"))
 }
 
 ```
