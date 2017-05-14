@@ -7,9 +7,19 @@ output:
   word_document: default
 ---
   
+```{r, echo=FALSE}
+library(e1071) 
+library(rvest)
+library(stringr)
+library(tm)
+library(SnowballC)
+library(wordcloud)
+knitr::opts_chunk$set(warning=FALSE, message=FALSE)
+```
+  
   
 ## Introduction
-&nbsp;  
+&nbsp;
   
 The goal of this assignment is to explore text mining and information retrieval components using the web as a source.
 Our main source will be the [IMDb website](www.imdb.com).  
@@ -151,6 +161,16 @@ getReviews <- function(movie_id, count = 0){
 }
 ```
 
+
+We noticed that some of the reviews didn't have a score, so we made  a function to remove those.
+```{r}
+removeNaScores <- function(X){
+  X$text <- X$text[!is.na(X$scores)]
+  X$scores <- X$scores[!is.na(X$scores)]
+  return(X)
+}
+```
+
 &nbsp;    
 &nbsp;    
 
@@ -192,3 +212,45 @@ So we created a function to remove those.
     tm_map(reviews, f, "\\W|\\d|_", " ")
     
 Applying this transformation before the removal of the stopwords, we have a document term matrix with 9k terms.
+
+```{r, echo=FALSE}
+########################## CODIGO PARA CORRER AQUI ##########
+#############################################################
+movieList <- searchTitle("Kill Bill")
+details <- getDetails(movieList[1])
+# movieReviewsList <- getReviews(movieList[1])
+load("KillBillReviews.Rdata") # loads movieReviewsList
+movieReviewsList <- removeNaScores(movieReviewsList)
+reviews <- VCorpus(VectorSource(movieReviewsList$text))
+## Stripping  white space
+reviews <- tm_map(reviews, stripWhitespace)
+## Converting everything to lowercase
+reviews <- tm_map(reviews, content_transformer(tolower))
+## Remove ponctuation, symbols, and digits, everything that isn't a word
+f <- content_transformer(function(x, pattern, sub) gsub(pattern, sub, x))
+reviews <- tm_map(reviews, f, "\\W|\\d|_", " ")
+## Fix double space caused by previous transformation, not sure if needed
+reviews <- tm_map(reviews, f, "  ", " ")
+## Removing English stopwords; We are not really sure that all reviews are in english
+reviews <- tm_map(reviews, removeWords, stopwords("english"))
+## Stemming the words (keeping only the "root" of each word)
+reviews <- tm_map(reviews, stemDocument)
+dtm <- DocumentTermMatrix(reviews)
+dtm2 <- weightTfIdf(dtm)
+
+
+
+
+```
+
+### Wordcloud
+
+
+We formed a wordcloud with all the reviews for each score
+```{r, echo=FALSE}
+for(i in 1:10){
+  wordcloud(reviews[movieReviewsList$scores == i], colors = rainbow(20))
+}
+
+```
+

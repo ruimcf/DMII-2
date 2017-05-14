@@ -120,6 +120,52 @@ getTitlesByGenre <- function(genre, count = 50){
   return(movieList)
 }
 
+
+transformCorpus <- function(reviews){
+  ## Stripping  white space
+  reviews <- tm_map(reviews, stripWhitespace)
+  ## Converting everything to lowercase
+  reviews <- tm_map(reviews, content_transformer(tolower))
+  ## Remove ponctuation, symbols, and digits, everything that isn't a word
+  f <- content_transformer(function(x, pattern, sub) gsub(pattern, sub, x))
+  reviews <- tm_map(reviews, f, "\\W|\\d|_", " ")
+  ## Fix double space caused by previous transformation, not sure if needed
+  reviews <- tm_map(reviews, f, "  ", " ")
+  ## Removing English stopwords
+  ## We are not really sure that all reviews are in english
+  reviews <- tm_map(reviews, removeWords, stopwords("english"))
+  ## Stemming the words (keeping only the "root" of each word)
+  reviews <- tm_map(reviews, stemDocument)
+  return(reviews)
+}
+
+mostCommon <- function(reviews, count = 0.8){
+  corpus <- transformCorpus(VCorpus(VectorSource(movieReviewsList$text[reviews$scores == 1])))
+  dtm <- DocumentTermMatrix(corpus)
+  dtm <- weightTfIdf(dtm)
+  inspect(dtm)
+  common <- findFreqTerms(dtm, count)
+  for(i in 2:10){
+    corpus <-transformCorpus(VCorpus(VectorSource(movieReviewsList$text[reviews$scores == i])))
+    dtm <- DocumentTermMatrix(corpus)
+    dtm <- weightTfIdf(dtm)
+    mostFrequent <- findFreqTerms(dtm, count)
+    toRemove <- c()
+    flag <- FALSE
+    for(j in 1:length(common)){
+      if(!(common[j] %in% mostFrequent)){
+        toRemove <- c(toRemove, j)
+        flag = TRUE
+      }
+    }
+    if(flag){
+      common <- common[-toRemove]
+    }
+  }
+  return(common)
+}
+
+
 movieList <- searchTitle("Kill Bill")
 details <- getDetails(movieList[1])
 print(details)
@@ -129,42 +175,16 @@ print(movieReviewsList$text[1])
 print(movieReviewsList$scores[1])
 movieReviewsList <- removeNaScores(movieReviewsList)
 reviews <- VCorpus(VectorSource(movieReviewsList$text))
-## terms = 34201
-## non sparse entries = 232338/56678125
 
-## Stripping  white space
-reviews <- tm_map(reviews, stripWhitespace)
-## terms = X
-## non sparse entries = X
-
-## Converting everything to lowercase
-reviews <- tm_map(reviews, content_transformer(tolower))
-## terms = 34201
-## non sparse entries =X
-
-## Remove ponctuation, symbols, and digits, everything that isn't a word
-f <- content_transformer(function(x, pattern, sub) gsub(pattern, sub, x))
-reviews <- tm_map(reviews, f, "\\W|\\d|_", " ")
-## Fix double space caused by previous transformation, not sure if needed
-reviews <- tm_map(reviews, f, "  ", " ")
-
-## Removing English stopwords
-## We are not really sure that all reviews are in english
-reviews <- tm_map(reviews, removeWords, stopwords("english"))
-## terms =X
-## non sparse entries:X
-
-## Stemming the words (keeping only the "root" of each word)
-reviews <- tm_map(reviews, stemDocument)
-
-## terms =X
-## non sparse entries:X
-
-
+reviews <- transformCorpus(reviews)
 dtm <- DocumentTermMatrix(reviews)
 #dtm <- removeSparseTerms(dtm, 0.2)
 inspect(dtm)
 dtm2 <- weightTfIdf(dtm)
+
+## REMOVER PALAVRAS COMUNS
+common <- mostCommon(movieReviewsList, 0.2)
+commonReviews <- tm_map(reviews, removeWords, common)
 
 finalDataSet <- cbind(data.frame(as.matrix(dtm2), Score=movieReviewsList$scores))
 library(e1071) 
@@ -183,9 +203,10 @@ exp <- performanceEstimation(
 ## Best result: cost=10, kernel=linear. MSE = 5.01
 
 for(i in 1:10){
-  wordcloud(reviews[movieReviewsList$scores == i], colors = rainbow(20))
+  wordcloud(commonReviews[movieReviewsList$scores == i], colors = rainbow(20))
   readline(prompt=str_interp("Score: ${i}\nPress [enter] to continue"))
 }
 
 
 genreList <- c("")
+
