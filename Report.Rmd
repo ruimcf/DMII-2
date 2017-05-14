@@ -1,14 +1,36 @@
 ---
-title: "DM2 Pratical Assignment 2"
+title: "DMII Pratical Assignment 2"
 author: "Pedro Belém, Rui Fonseca"
 output:
   html_document: default
   pdf_document: default
   word_document: default
 ---
+  
+  
+# Introduction
+&nbsp;  
+  
+The goal of this assignment is to explore text mining and information retrieval components using the web as a source.
+Our main source will be the [IMDb website](www.imdb.com).  
+We will use it to retrive information about movies and tv shows, directors, casts and user reviews using R tools, mainly the rvest package.
+After retrieving the desired information we will use text mining tools in R (tm package) to manage, organize and transform this information.
+Finally we will use predictive and analysis tools in hope to get a better understanding of the underlying rules beneath some concepts, like a review score or a movie genre.  
+&nbsp;  
+&nbsp;  
+&nbsp;  
 
-## Find basic movie information
-To make this feature we first made a function that given a string it will query that string to imdb and return a list with the id's of the movies found.
+# Information Retrieval  
+&nbsp;    
+&nbsp;  
+
+## Find basic movie information based on a query string  
+&nbsp;
+
+The first feature consists of retriving basic information about movies based on a user chosen string. Since a string can correspond to numerous different titles, we will return a list.  
+
+We agreed that we should use the **title ID** as the way of representing a title.  
+For the first function we will use the user query string to return a list of title id's related to the query. This function also has an optional argument *max* that limits the number of titles retrieved. 
 
 ```{r}
 searchTitle <- function(query, max=200){
@@ -34,6 +56,9 @@ searchTitle <- function(query, max=200){
 ```
 
 After having a way to find the id of the movie we which to get information of, we can use the imdb movie page to get various details, so we made various functions to get specific informations but to prevent that we request the movie page various times we made it possible to pass the page to to the function. This way we only need to request the page once even if we need various details.  
+
+After having a title ID we can retrieve all the relevant details about it.
+We structured the retrieval of detail to isolated functions so it is easier to add or remove the information that actually want. Those functions receive the title id and an optional page. Using this page means that we do not need to request the page, so we maintain speed and efficiency. 
 
 ```{r}
 getTitle <- function(movieID, page=NULL){
@@ -66,7 +91,8 @@ getDirector <- function(movieID, page=NULL){
 }
 ```
 
-To get all the details of a movie, in a vector we have this function
+We aggregate all the details in the getDetails function. This function receives the title ID and returns a vector with the various details.  
+
 ```{R}
 getDetails <- function(movieID){
   link <- str_interp("http://www.imdb.com/title/${movieID}")
@@ -77,8 +103,17 @@ getDetails <- function(movieID){
 }
 ```
 
+&nbsp;    
+
 ## Collect all the reviews of a movie
-We didn't find any IMDB url that showed all reviews of a movie but it is possible to choose the number of the reviews we wanted. A way to do it would be to first find how many reviews the movie has and then query that many reviews. However we found a hyperlink in the reviews page that finda all the reviews (but not with the full information) and by changing the url we can get all the reviews. The page then has all the reviews in text and the score so we could extract it. We made a function that receives a movie id and returns a list of reviews (text and score). We also added the title of the review to the text because it could be important.
+&nbsp;    
+
+&nbsp; We didn't find any IMDB url that showed all reviews of a movie but it is possible to construct an url that retrieves a chosen the number of reviews.
+A way to do it would be to first find how many reviews the movie has and then query that many reviews.  
+&nbsp; However we found an hyperlink in the reviews page that finds all the reviews (but not with the full information) and by changing the url we can get all the reviews. 
+The page then has all the reviews in text and the score so we could extract it.
+We made a function that receives a movie id and returns a list of reviews (text and score). 
+We also added the title of the review to the text because it could be important.
 
 ```{R}
 extractScore <- function(html_node) {
@@ -101,8 +136,6 @@ getReviews <- function(movie_id, count = 0){
   }
   showAllReviewsPartialUrl <-gsub("-index","", showAllPartialUrl)
   showAllReviewsUrl <- str_interp("http://www.imdb.com/title/${movie_id}/${showAllReviewsPartialUrl}")
-      
-  
   listReviewsPage <- read_html(showAllReviewsUrl) 
   reviewsNodeList <- html_nodes(listReviewsPage, "#tn15content div+ p , hr+ div")
   reviews <- list()
@@ -116,5 +149,4 @@ getReviews <- function(movie_id, count = 0){
   }
   return(reviews)
 }
-
 ```
