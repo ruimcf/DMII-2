@@ -3,6 +3,8 @@ library(stringr)
 library(tm)
 library(SnowballC)
 library(wordcloud)
+library(e1071) 
+library(performanceEstimation)
 
 ## GET list of --MOVIE ID'S-- from a query string
 searchTitle <- function(query, max=200){
@@ -162,24 +164,55 @@ reviews <- tm_map(reviews, stemDocument)
 
 
 dtm <- DocumentTermMatrix(reviews)
-#dtm <- removeSparseTerms(dtm, 0.2)
 inspect(dtm)
+#dtm <- removeSparseTerms(dtm, 0.95)
 dtm2 <- weightTfIdf(dtm)
 
 finalDataSet <- cbind(data.frame(as.matrix(dtm2), Score=movieReviewsList$scores))
-library(e1071) 
+
+estimationRegression <- performanceEstimation(
+  PredTask(Score ~ ., finalDataSet),
+  c(workflowVariants(learner="svm", learner.pars=list(cost=c(1,3,10,13), kernel=c("linear")))),
+  EstimationTask(metrics="mse")
+  )
+
+toRank <- function(score) {
+  if(score < 5) {
+    return(c("low"))
+  }
+  else if(score > 7) {
+    return(c("high"))
+  }
+  else {
+    return(c("medium"))
+  }
+}
+
+buildTrainingDataSet_Class <- function(weightdtm, scores) {
+  classes <- sapply(scores, toRank) 
+  return(cbind(data.frame(as.matrix(weightdtm), Score=classes)))
+}
+
+finalDataSet_class <- buildTrainingDataSet_Class(dtm2, movieReviewsList$scores)
+
+estimationClassification <- performanceEstimation(
+  PredTask(Score ~ ., finalDataSet_class),
+  c( Workflow(learner="naiveBayes"),
+     workflowVariants(learner="svm", learner.pars=list(kernel=c("linear", "radial")))
+       ),
+  EstimationTask(metrics="err", method=CV())
+  ) 
+
+
+
+
+
 #randomRows <- sample(1: nrow(finalDataSet), as.integer(0.7*nrow(finalDataSet)))
 #train <- finalDataSet[randomRows, ]
 #test <- finalDataSet[-randomRows, ]
 #m <- svm(Score ~ ., train) 
 #preds <- predict(m, test) 
 
-library(performanceEstimation)
-exp <- performanceEstimation(
-  PredTask(Score ~ ., finalDataSet),
-  c(workflowVariants(learner="svm", learner.pars=list(cost=c(1,3,10,13), kernel=c("linear", "radial")))),
-  EstimationTask(metrics="mse")
-  )
 ## Best result: cost=10, kernel=linear. MSE = 5.01
 
 for(i in 1:10){
