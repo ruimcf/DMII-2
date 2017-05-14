@@ -182,14 +182,14 @@ movieReviewsList <- removeNaScores(movieReviewsList)
 reviews <- VCorpus(VectorSource(movieReviewsList$text))
 
 reviews <- transformCorpus(reviews)
-dtm <- DocumentTermMatrix(reviews)
+common <- mostCommon(movieReviewsList, 0.2)
+## REMOVER PALAVRAS COMUNS
+commonReviews <- tm_map(reviews, removeWords, common)
+dtm <- DocumentTermMatrix(commonReviews)
 inspect(dtm)
 #dtm <- removeSparseTerms(dtm, 0.95)
 dtm2 <- weightTfIdf(dtm)
 
-## REMOVER PALAVRAS COMUNS
-common <- mostCommon(movieReviewsList, 0.2)
-commonReviews <- tm_map(reviews, removeWords, common)
 
 finalDataSet <- cbind(data.frame(as.matrix(dtm2), Score=movieReviewsList$scores))
 
