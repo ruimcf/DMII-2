@@ -300,3 +300,51 @@ for(i in 1:10){
 
 ```
 
+### Predictive Model
+After removing the terms which don't give information about the score of the review we constructed a prediction model to predict the score of a review based on the text. As the score is a quantitative value our first approach was to consider this task as a regression problem. We tried SVM with various parameters and estimated the performance of each model with cross validation.
+
+```{R eval=FALSE}
+dtm <- DocumentTermMatrix(reviews)
+dtm2 <- weightTfIdf(dtm)
+finalDataSet <- cbind(data.frame(as.matrix(dtm2), Score=movieReviewsList$scores))
+
+
+estimationRegression <- performanceEstimation(
+PredTask(Score ~ ., finalDataSet),
+c(workflowVariants(learner="svm", learner.pars=list(cost=c(1,3,10,13), kernel=c("linear")))),
+EstimationTask(metrics="mse")
+)
+```
+
+# INSERIR RESULTADOS
+
+It's really difficult to predict the exact value of a score based on the review so we tried to instead divide the reviews in three different classes. So we considered scores from 1 to 4 "low", scores from 5 to 7 "medium" and the rest "high". We converted the problem to a classification problem and we predicted which rank (low, medium, high) a review belongs to, based on the test. We tried SVM again and also Naive Bayes 
+
+```{R eval=FALSE}
+toRank <- function(score) {
+  if(score < 5) {
+    return(c("low"))
+  }
+  else if(score > 7) {
+    return(c("high"))
+  }
+  else {
+    return(c("medium"))
+  }
+}
+
+buildTrainingDataSet_Class <- function(weightdtm, scores) {
+  classes <- sapply(scores, toRank) 
+  return(cbind(data.frame(as.matrix(weightdtm), Score=classes)))
+}
+
+finalDataSet_class <- buildTrainingDataSet_Class(dtm2, movieReviewsList$scores)
+
+estimationClassification <- performanceEstimation(
+  PredTask(Score ~ ., finalDataSet_class),
+  c( Workflow(learner="naiveBayes"),
+     workflowVariants(learner="svm", learner.pars=list(cost=c(1,3,10,13), kernel=c("linear")))
+     ),
+  EstimationTask(metrics="err", method=CV())
+) 
+```

@@ -122,7 +122,6 @@ getTitlesByGenre <- function(genre, count = 50){
   return(movieList)
 }
 
-
 transformCorpus <- function(reviews){
   ## Stripping  white space
   reviews <- tm_map(reviews, stripWhitespace)
@@ -172,15 +171,20 @@ details <- getDetails(movieList[1])
 print(details)
 # movieReviewsList <- getReviews(movieList[1])
 load("KillBillReviews.Rdata") # loads movieReviewsList
+#load("PrometheusReviews.RData") # loads movieReviewsList
 print(movieReviewsList$text[1])
 print(movieReviewsList$scores[1])
 movieReviewsList <- removeNaScores(movieReviewsList)
+
+
+
 reviews <- VCorpus(VectorSource(movieReviewsList$text))
 reviews <- transformCorpus(reviews)
-## REMOVER PALAVRAS COMUNS
 common <- mostCommon(movieReviewsList, 0.2)
-reviews <- tm_map(reviews, removeWords, common)
-dtm <- DocumentTermMatrix(reviews)
+## REMOVER PALAVRAS COMUNS
+commonReviews <- tm_map(reviews, removeWords, common)
+dtm <- DocumentTermMatrix(commonReviews)
+inspect(dtm)
 #dtm <- removeSparseTerms(dtm, 0.95)
 dtm2 <- weightTfIdf(dtm)
 
@@ -214,10 +218,10 @@ finalDataSet_class <- buildTrainingDataSet_Class(dtm2, movieReviewsList$scores)
 estimationClassification <- performanceEstimation(
   PredTask(Score ~ ., finalDataSet_class),
   c( Workflow(learner="naiveBayes"),
-     workflowVariants(learner="svm", learner.pars=list(kernel=c("linear", "radial")))
-       ),
+     workflowVariants(learner="svm", learner.pars=list(cost=c(1,3,10,13), kernel=c("linear")))
+     ),
   EstimationTask(metrics="err", method=CV())
-  ) 
+) 
 
 
 
@@ -230,11 +234,6 @@ estimationClassification <- performanceEstimation(
 #preds <- predict(m, test) 
 
 ## Best result: cost=10, kernel=linear. MSE = 5.01
-for(i in 1:10){
-  png
-  wordcloud(commonReviews[movieReviewsList$scores == i], colors = rainbow(20))
-  readline(prompt=str_interp("Score: ${i}\nPress [enter] to continue"))
-}
 
 genreList <- c("")
 
