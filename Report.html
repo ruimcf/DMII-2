@@ -122,8 +122,8 @@ $(document).ready(function () {
 </div>
 
 
-<div id="introduction" class="section level1">
-<h1>Introduction</h1>
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
 <p> </p>
 <p>The goal of this assignment is to explore text mining and information retrieval components using the web as a source. Our main source will be the <a href="www.imdb.com">IMDb website</a>.<br />
 We will use it to retrive information about movies and tv shows, directors, casts and user reviews using R tools, mainly the rvest package. After retrieving the desired information we will use text mining tools in R (tm package) to manage, organize and transform this information. Finally we will use predictive and analysis tools in hope to get a better understanding of the underlying rules beneath some concepts, like a review score or a movie genre.<br />
@@ -131,12 +131,12 @@ We will use it to retrive information about movies and tv shows, directors, cast
  <br />
  </p>
 </div>
-<div id="information-retrieval" class="section level1">
-<h1>Information Retrieval</h1>
+<div id="information-retrieval" class="section level2">
+<h2>Information Retrieval</h2>
 <p> <br />
  </p>
-<div id="find-basic-movie-information-based-on-a-query-string" class="section level2">
-<h2>Find basic movie information based on a query string</h2>
+<div id="find-basic-movie-information-based-on-a-query-string" class="section level3">
+<h3>Find basic movie information based on a query string</h3>
 <p> </p>
 <p>The first feature consists of retriving basic information about movies based on a user chosen string. Since a string can correspond to numerous different titles, we will return a list.</p>
 <p>We agreed that we should use the <strong>title ID</strong> as the way of representing a title.<br />
@@ -201,8 +201,8 @@ getDirector &lt;- function(movieID, page=NULL){
 }</code></pre>
 <p> </p>
 </div>
-<div id="collect-all-the-reviews-of-a-movie" class="section level2">
-<h2>Collect all the reviews of a movie</h2>
+<div id="collect-reviews-of-a-movie" class="section level3">
+<h3>Collect reviews of a movie</h3>
 <p> </p>
 <p>  We didn’t find any IMDB url that showed all reviews of a movie but it is possible to construct an url that retrieves a chosen the number of reviews. A way to do it would be to first find how many reviews the movie has and then query that many reviews.<br />
   However we found an hyperlink in the reviews page that finds all the reviews (but not with the full information) and by changing the url we can get all the reviews. The page then has all the reviews in text and the score so we could extract it. We made a function that receives a movie id and returns a list of reviews (text and score). We also added the title of the review to the text because it could be important.</p>
@@ -239,6 +239,33 @@ getReviews &lt;- function(movie_id, count = 0){
   }
   return(reviews)
 }</code></pre>
+<p> <br />
+ </p>
+</div>
+</div>
+<div id="text-mining" class="section level2">
+<h2>Text Mining</h2>
+<p> </p>
+<p>Once we have a list of reviews we can form a VCorpus. We use VectorSource(reviewsList$text) as the input.</p>
+<pre><code>VCorpus(VectorSource(movieReviewsList$text))</code></pre>
+<p> </p>
+<div id="text-transformations" class="section level3">
+<h3>Text Transformations</h3>
+<p> </p>
+<p>We use various text transformations to have a more meaningfull set of documents.</p>
+<p>We remove whitespace, such as paragraphs and tabs.</p>
+<pre><code>tm_map(reviews, stripWhitespace)</code></pre>
+<p>We transform all words to lower case.</p>
+<pre><code>tm_map(reviews, content_transformer(tolower))</code></pre>
+<p>We remove the english stop words (since we assume all reviews are in english) to remove the most common words.</p>
+<pre><code>tm_map(reviews, removeWords, stopwords(&quot;english&quot;))</code></pre>
+<p>We stem the document, leaving each word to it’s root.</p>
+<pre><code>tm_map(reviews, stemDocument)</code></pre>
+<p>After creating the document term matrix we had 13k terms with the reviews from “Kill Bill”.<br />
+However, after analysing the matrix we found that there were a lot of terms with ponctuation or symbols at the beggining or the end of the terms. So we created a function to remove those.</p>
+<pre><code>f &lt;- content_transformer(function(x, pattern, sub) gsub(pattern, sub, x))
+tm_map(reviews, f, &quot;\\W|\\d|_&quot;, &quot; &quot;)</code></pre>
+<p>Applying this transformation before the removal of the stopwords, we had a document term matrix with 9k terms.</p>
 </div>
 </div>
 

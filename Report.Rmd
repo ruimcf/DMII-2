@@ -8,7 +8,7 @@ output:
 ---
   
   
-# Introduction
+## Introduction
 &nbsp;  
   
 The goal of this assignment is to explore text mining and information retrieval components using the web as a source.
@@ -20,11 +20,11 @@ Finally we will use predictive and analysis tools in hope to get a better unders
 &nbsp;  
 &nbsp;  
 
-# Information Retrieval  
+## Information Retrieval  
 &nbsp;    
 &nbsp;  
 
-## Find basic movie information based on a query string  
+### Find basic movie information based on a query string  
 &nbsp;
 
 The first feature consists of retriving basic information about movies based on a user chosen string. Since a string can correspond to numerous different titles, we will return a list.  
@@ -105,7 +105,7 @@ getDetails <- function(movieID){
 
 &nbsp;    
 
-## Collect all the reviews of a movie
+### Collect reviews of a movie
 &nbsp;    
 
 &nbsp; We didn't find any IMDB url that showed all reviews of a movie but it is possible to construct an url that retrieves a chosen the number of reviews.
@@ -150,3 +150,45 @@ getReviews <- function(movie_id, count = 0){
   return(reviews)
 }
 ```
+
+&nbsp;    
+&nbsp;    
+
+## Text Mining
+&nbsp;    
+
+Once we have a list of reviews we can form a VCorpus. We use VectorSource(reviewsList$text) as the input.
+
+    VCorpus(VectorSource(movieReviewsList$text))
+
+&nbsp;    
+
+### Text Transformations
+&nbsp;    
+
+We use various text transformations to have a more meaningfull set of documents.
+
+We remove whitespace, such as paragraphs and tabs.
+
+    tm_map(reviews, stripWhitespace)
+
+We transform all words to lower case.
+
+    tm_map(reviews, content_transformer(tolower))
+    
+We remove the english stop words (since we assume all reviews are in english) to remove the most common words.
+
+    tm_map(reviews, removeWords, stopwords("english"))
+
+We stem the document, leaving each word to it's root.
+
+    tm_map(reviews, stemDocument)
+
+After creating the document term matrix we had 13k terms with the reviews from "Kill Bill".  
+However, after analysing the matrix we found that there were a lot of terms with ponctuation or symbols at the beggining or the end of the terms.
+So we created a function to remove those.
+
+    f <- content_transformer(function(x, pattern, sub) gsub(pattern, sub, x))
+    tm_map(reviews, f, "\\W|\\d|_", " ")
+    
+Applying this transformation before the removal of the stopwords, we have a document term matrix with 9k terms.
