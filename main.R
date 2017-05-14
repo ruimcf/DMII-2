@@ -145,7 +145,6 @@ mostCommon <- function(reviews, count = 0.8){
   corpus <- transformCorpus(VCorpus(VectorSource(movieReviewsList$text[reviews$scores == 1])))
   dtm <- DocumentTermMatrix(corpus)
   dtm <- weightTfIdf(dtm)
-  inspect(dtm)
   common <- findFreqTerms(dtm, count)
   for(i in 2:10){
     corpus <-transformCorpus(VCorpus(VectorSource(movieReviewsList$text[reviews$scores == i])))
@@ -177,16 +176,13 @@ print(movieReviewsList$text[1])
 print(movieReviewsList$scores[1])
 movieReviewsList <- removeNaScores(movieReviewsList)
 reviews <- VCorpus(VectorSource(movieReviewsList$text))
-
 reviews <- transformCorpus(reviews)
-dtm <- DocumentTermMatrix(reviews)
-inspect(dtm)
-#dtm <- removeSparseTerms(dtm, 0.95)
-dtm2 <- weightTfIdf(dtm)
-
 ## REMOVER PALAVRAS COMUNS
 common <- mostCommon(movieReviewsList, 0.2)
-commonReviews <- tm_map(reviews, removeWords, common)
+reviews <- tm_map(reviews, removeWords, common)
+dtm <- DocumentTermMatrix(reviews)
+#dtm <- removeSparseTerms(dtm, 0.95)
+dtm2 <- weightTfIdf(dtm)
 
 finalDataSet <- cbind(data.frame(as.matrix(dtm2), Score=movieReviewsList$scores))
 
@@ -234,12 +230,11 @@ estimationClassification <- performanceEstimation(
 #preds <- predict(m, test) 
 
 ## Best result: cost=10, kernel=linear. MSE = 5.01
-
 for(i in 1:10){
+  png
   wordcloud(commonReviews[movieReviewsList$scores == i], colors = rainbow(20))
   readline(prompt=str_interp("Score: ${i}\nPress [enter] to continue"))
 }
-
 
 genreList <- c("")
 

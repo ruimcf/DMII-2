@@ -227,7 +227,6 @@ mostCommon <- function(reviews, count = 0.2){
   corpus <- transformCorpus(VCorpus(VectorSource(movieReviewsList$text[reviews$scores == 1])))
   dtm <- DocumentTermMatrix(corpus)
   dtm <- weightTfIdf(dtm)
-  inspect(dtm)
   common <- findFreqTerms(dtm, count)
   for(i in 2:10){
     corpus <-transformCorpus(VCorpus(VectorSource(movieReviewsList$text[reviews$scores == i])))
